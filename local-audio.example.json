@@ -1,0 +1,25 @@
+{
+  "music_dirs": [
+    "C:/Users/YourName/Music"
+  ],
+  "channels": [
+    {
+      "id": "road-trip",
+      "name": "Road Trip Mix",
+      "folders": [
+        "C:/Users/YourName/Music/Rock",
+        "D:/Audio/Favorites"
+      ],
+      "shuffle": true,
+      "repeat": "all"
+    },
+    {
+      "id": "favorite-song",
+      "name": "Favorite Song",
+      "files": [
+        "C:/Users/YourName/Music/Artist - Favorite Song.flac"
+      ],
+      "repeat": "one"
+    }
+  ]
+}

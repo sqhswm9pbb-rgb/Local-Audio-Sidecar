@@ -1,0 +1,88 @@
+name: Build local audio sidecar
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            extension: ""
+          - runner: ubuntu-latest
+            goos: linux
+            goarch: arm64
+            extension: ""
+          - runner: windows-latest
+            goos: windows
+            goarch: amd64
+            extension: .exe
+          - runner: macos-latest
+            goos: darwin
+            goarch: amd64
+            extension: ""
+          - runner: macos-latest
+            goos: darwin
+            goarch: arm64
+            extension: ""
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build server
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -trimpath -o "local-audio-sidecar-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.extension }}" ./server
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: local-audio-sidecar-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: local-audio-sidecar-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.extension }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: local-audio-sidecar-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release and attach binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: gh release create "$TAG_NAME" dist/* --title "$TAG_NAME" --generate-notes --verify-tag
